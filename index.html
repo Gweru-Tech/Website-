@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https:;
+        connect-src 'self';
+        font-src 'self';
+        object-src 'none';
+        media-src 'self';
+        frame-src 'none';
+        base-uri 'self';
+        form-action 'self';
+        upgrade-insecure-requests;
+    ">
+    
+    <!-- Additional Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="
+        geolocation=(),
+        microphone=(),
+        camera=(),
+        payment=(),
+        usb=(),
+        magnetometer=(),
+        gyroscope=(),
+        accelerometer=()
+    ">
+    
+    <!-- Prevent caching of sensitive redirect -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Meta redirect as backup (5 second delay) -->
+    <meta http-equiv="refresh" content="5;url=./YouTube.html">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .redirect-container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        h1 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        p {
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+        
+        .manual-link {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .manual-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .security-info {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        /* Hide content until security checks pass */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-container" id="redirectContainer">
+        <div class="spinner"></div>
+        <h1>Redirecting Securely...</h1>
+        <p>Please wait while we redirect you to the YouTube page.</p>
+        <a href="./YouTube.html" class="manual-link" id="manualLink">Click here if not redirected</a>
+        <div class="security-info">
+            🔒 Secure redirect in progress
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+            
+            // Security checks
+            const SecurityManager = {
+                // Check if running in secure context
+                isSecureContext: function() {
+                    return window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+                },
+                
+                // Validate the target URL
+                validateTarget: function(url) {
+                    try {
+                        const targetUrl = new URL(url, window.location.origin);
+                        // Only allow same-origin redirects
+                        return targetUrl.origin === window.location.origin;
+                    } catch (e) {
+                        return false;
+                    }
+                },
+                
+                // Check for common XSS patterns in URL
+                sanitizeUrl: function(url) {
+                    const dangerous = /[<>'"&\x00-\x20\x7f-\xff]/;
+                    return !dangerous.test(url);
+                },
+                
+                // Verify referrer policy
+                checkReferrer: function() {
+                    return document.referrerPolicy === 'strict-origin-when-cross-origin' || 
+                           document.referrerPolicy === 'same-origin' ||
+                           document.referrerPolicy === 'no-referrer';
+                },
+                
+                // Rate limiting for redirects
+                checkRateLimit: function() {
+                    const now = Date.now();
+                    const lastRedirect = localStorage.getItem('lastRedirect');
+                    
+                    if (lastRedirect && (now - parseInt(lastRedirect)) < 1000) {
+                        return false; // Too frequent
+                    }
+                    
+                    localStorage.setItem('lastRedirect', now.toString());
+                    return true;
+                }
+            };
+            
+            // Secure redirect function
+            function secureRedirect() {
+                const targetUrl = './YouTube.html';
+                
+                // Perform security checks
+                if (!SecurityManager.validateTarget(targetUrl)) {
+                    console.error('Invalid redirect target');
+                    return false;
+                }
+                
+                if (!SecurityManager.sanitizeUrl(targetUrl)) {
+                    console.error('Potentially dangerous URL detected');
+                    return false;
+                }
+                
+                if (!SecurityManager.checkRateLimit()) {
+                    console.warn('Rate limit exceeded');
+                    return false;
+                }
+                
+                // Log the redirect for security monitoring
+                console.log('Secure redirect initiated to:', targetUrl);
+                
+                // Perform the redirect
+                try {
+                    window.location.replace(targetUrl);
+                    return true;
+                } catch (error) {
+                    console.error('Redirect failed:', error);
+                    return false;
+                }
+            }
+            
+            // Initialize security measures
+            function initSecurity() {
+                // Disable right-click context menu
+                document.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                });
+                
+                // Disable common developer shortcuts
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'F12' || 
+                        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                        (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+                        (e.ctrlKey && e.key === 'U')) {
+                        e.preventDefault();
+                    }
+                });
+                
+                // Detect developer tools
+                let devtools = {
+                    open: false,
+                    orientation: null
+                };
+                
+                setInterval(function() {
+                    if (window.outerHeight - window.innerHeight > 200 || 
+                        window.outerWidth - window.innerWidth > 200) {
+                        if (!devtools.open) {
+                            devtools.open = true;
+                            console.clear();
+                            console.log('%cSecurity Notice', 'color: red; font-size: 20px; font-weight: bold;');
+                            console.log('This page contains security measures. Unauthorized access attempts are logged.');
+                        }
+                    } else {
+                        devtools.open = false;
+                    }
+                }, 500);
+            }
+            
+            // Main execution
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize security
+                initSecurity();
+                
+                // Show content after security initialization
+                document.getElementById('redirectContainer').classList.remove('hidden');
+                
+                // Perform redirect after 2 seconds
+                setTimeout(function() {
+                    if (!secureRedirect()) {
+                        // If redirect fails, show error message
+                        document.querySelector('h1').textContent = 'Redirect Failed';
+                        document.querySelector('p').textContent = 'Please use the manual link below.';
+                        document.querySelector('.spinner').style.display = 'none';
+                    }
+                }, 2000);
+                
+                // Secure the manual link
+                document.getElementById('manualLink').addEventListener('click', function(e) {
+                    if (!SecurityManager.validateTarget(this.href)) {
+                        e.preventDefault();
+                        alert('Security error: Invalid redirect target');
+                    }
+                });
+            });
+            
+            // Prevent iframe embedding
+            if (window.top !== window.self) {
+                window.top.location = window.self.location;
+            }
+            
+            // Clear sensitive data on page unload
+            window.addEventListener('beforeunload', function() {
+                // Clear any sensitive data
+                sessionStorage.clear();
+            });
+            
+        })();
+    </script>
+    
+    <!-- Noscript fallback -->
+    <noscript>
+        <meta http-equiv="refresh" content="0;url=./YouTube.html">
+        <style>
+            .redirect-container { display: none; }
+            body::after {
+                content: "JavaScript is disabled. Redirecting...";
+                display: block;
+                text-align: center;
+                color: white;
+                font-size: 1.2rem;
+                margin-top: 50vh;
+            }
+        </style>
+    </noscript>
+</body>
+</html>
